@@ -1,121 +1,139 @@
+# =====================================================================
+# controller_personagem.py
+# Inserir, atualizar e remover PERSONAGENS na coleção "personagens".
+# Cada personagem guarda o id_jogador e o id_guilda: como o MongoDB
+# não tem chave estrangeira, o código confere se eles existem.
+# =====================================================================
 from model.personagens import Personagem
 from model.jogadores import Jogador
 from model.guildas import Guilda
-from conexion.oracle_queries import OracleQueries
+from conexion.mongo_queries import MongoQueries
 from utils.entrada import ler_inteiro, ler_texto, perguntar_sim_nao
 
+# As únicas classes aceitas
 CLASSES = ["Guerreiro", "Mago", "Arqueiro", "Sacerdote"]
 
 
 class Controller_Personagem:
+
     def __init__(self):
         pass
 
-    def buscar_personagem(self, oracle, id_personagem):
-        """Busca o personagem pelo ID, já trazendo os dados do jogador e da guilda
-        (JOIN). Devolve um objeto Personagem, ou None se não existir."""
-        linhas = oracle.consultar(
-            f"select p.id_personagem, p.nome, p.classe, p.nivel, "
-            f" j.id_jogador, j.nickname, j.email, to_char(j.data_cadastro, 'DD/MM/YYYY'), "
-            f" g.id_guilda, g.nome, to_char(g.data_criacao, 'DD/MM/YYYY') "
-            f"from personagens p "
-            f"inner join jogadores j on j.id_jogador = p.id_jogador "
-            f"inner join guildas g on g.id_guilda = p.id_guilda "
-            f"where p.id_personagem = {id_personagem}")
-        if len(linhas) == 0:
+    # -----------------------------------------------------------------
+    # Funções de apoio
+    # -----------------------------------------------------------------
+    def buscar_personagem(self, mongo, id_personagem):
+        """Busca o personagem pelo ID e também o seu jogador e a sua guilda.
+        Devolve um objeto Personagem, ou None se não existir."""
+        doc_personagem = mongo.db["personagens"].find_one({"id_personagem": id_personagem})
+        if doc_personagem is None:
             return None
-        linha = linhas[0]
-        jogador = Jogador(linha[4], linha[5], linha[6], linha[7])
-        guilda = Guilda(linha[8], linha[9], linha[10])
-        return Personagem(linha[0], linha[1], linha[2], linha[3], jogador, guilda)
-    
-    def verifica_existencia_personagem(self, oracle, id_personagem):
+        # Busca os documentos "relacionados" usando os IDs guardados no personagem
+        doc_jogador = mongo.db["jogadores"].find_one({"id_jogador": doc_personagem["id_jogador"]})
+        doc_guilda = mongo.db["guildas"].find_one({"id_guilda": doc_personagem["id_guilda"]})
+        jogador = Jogador(doc_jogador["id_jogador"], doc_jogador["nickname"],
+                          doc_jogador["email"], doc_jogador["data_cadastro"])
+        guilda = Guilda(doc_guilda["id_guilda"], doc_guilda["nome"], doc_guilda["data_criacao"])
+        return Personagem(doc_personagem["id_personagem"], doc_personagem["nome"],
+                          doc_personagem["classe"], doc_personagem["nivel"], jogador, guilda)
+
+    def verifica_existencia_personagem(self, mongo, id_personagem):
         """Devolve True se existe personagem com esse ID."""
-        return self.buscar_personagem(oracle, id_personagem) is not None
-    
-    def listar_personagens(self, oracle):
+        return mongo.db["personagens"].count_documents({"id_personagem": id_personagem}) > 0
+
+    def listar_personagens(self, mongo):
         """Mostra os personagens na tela e devolve quantos existem."""
-        return oracle.imprimir(
-            "select id_personagem as id, nome, classe, nivel "
-            "from personagens order by id_personagem")
-    
+        documentos = mongo.db["personagens"].find(
+            {}, {"_id": 0, "id_personagem": 1, "nome": 1, "classe": 1, "nivel": 1}).sort("id_personagem", 1)
+        return mongo.imprimir(documentos, ["id_personagem", "nome", "classe", "nivel"])
+
     def escolher_classe(self):
         """Mostra as classes numeradas e devolve a escolhida."""
         print("Classes disponíveis:")
         for i in range(len(CLASSES)):
-            print(f" {i + 1} - {CLASSES[i]}")
+            print(f"  {i + 1} - {CLASSES[i]}")
         opcao = ler_inteiro(f"Escolha a classe [1-{len(CLASSES)}]: ", 1, len(CLASSES))
         return CLASSES[opcao - 1]
-    
-    def escolher_jogador(self, oracle):
+
+    def escolher_jogador(self, mongo):
         """Mostra os jogadores e devolve o ID de um que exista."""
         print("\nJogadores cadastrados:")
-        oracle.imprimir("select id_jogador as id, nickname from jogadores order by id_jogador")
+        documentos = mongo.db["jogadores"].find({}, {"_id": 0, "id_jogador": 1, "nickname": 1}).sort("id_jogador", 1)
+        mongo.imprimir(documentos, ["id_jogador", "nickname"])
         while True:
             id_jogador = ler_inteiro("ID do jogador dono do personagem: ")
-            qtd = oracle.consultar(
-                f"select count(1) from jogadores where id_jogador = {id_jogador}")[0][0]
-            if qtd > 0:
+            if mongo.db["jogadores"].count_documents({"id_jogador": id_jogador}) > 0:
                 return id_jogador
-            print(f" Não existe jogador com o ID {id_jogador}.")
+            print(f"  Não existe jogador com o ID {id_jogador}.")
 
-    def escolher_guilda(self, oracle):
+    def escolher_guilda(self, mongo):
         """Mostra as guildas e devolve o ID de uma que exista."""
         print("\nGuildas cadastradas:")
-        oracle.imprimir("select id_guilda as id, nome from guildas order by id_guilda")
+        documentos = mongo.db["guildas"].find({}, {"_id": 0, "id_guilda": 1, "nome": 1}).sort("id_guilda", 1)
+        mongo.imprimir(documentos, ["id_guilda", "nome"])
         while True:
             id_guilda = ler_inteiro("ID da guilda do personagem: ")
-            qtd = oracle.consultar(
-                f"select count(1) from guildas where id_guilda = {id_guilda}")[0][0]
-            if qtd > 0:
+            if mongo.db["guildas"].count_documents({"id_guilda": id_guilda}) > 0:
                 return id_guilda
-            print(f" Não existe guilda com o ID {id_guilda}.")
+            print(f"  Não existe guilda com o ID {id_guilda}.")
 
-    def existem_jogadores_e_guildas(self, oracle):
+    def existem_jogadores_e_guildas(self, mongo):
         """Personagem precisa de jogador e guilda: confere se existem os dois."""
-        qtd_jogadores = oracle.consultar("select count(1) from jogadores")[0][0]
-        qtd_guildas = oracle.consultar("select count(1) from guildas")[0][0]
+        qtd_jogadores = mongo.db["jogadores"].count_documents({})
+        qtd_guildas = mongo.db["guildas"].count_documents({})
         if qtd_jogadores == 0 or qtd_guildas == 0:
             print("\nCadastre pelo menos um jogador e uma guilda antes de criar personagens.")
             return False
         return True
 
+    # -----------------------------------------------------------------
+    # INSERIR
+    # -----------------------------------------------------------------
     def inserir_personagem(self):
-        oracle = OracleQueries()
+        mongo = MongoQueries()
+        mongo.conectar()
         while True:
             print("\n=== NOVO PERSONAGEM ===")
-            if not self.existem_jogadores_e_guildas(oracle):
+            if not self.existem_jogadores_e_guildas(mongo):
                 break
 
             nome = ler_texto("Nome do personagem: ", 30)
             classe = self.escolher_classe()
             nivel = ler_inteiro("Nível [1-100]: ", 1, 100)
-            id_jogador = self.escolher_jogador(oracle)
-            id_guilda = self.escolher_guilda(oracle)
+            id_jogador = self.escolher_jogador(mongo)
+            id_guilda = self.escolher_guilda(mongo)
 
-            novo_id = oracle.proximo_id("PERSONAGENS_ID_SEQ")
-            sql = (f"insert into personagens "
-                   f"(id_personagem, nome, classe, nivel, id_jogador, id_guilda) "
-                   f"values ({novo_id}, '{nome}', '{classe}', {nivel}, {id_jogador}, {id_guilda})")
-            if oracle.executar(sql):
-                novo_personagem = self.buscar_personagem(oracle, novo_id)
-                print("\nPersonagem cadastrado com sucesso!")
-                print(novo_personagem.to_string())
+            novo_id = mongo.proximo_id("personagens", "id_personagem")
+            mongo.db["personagens"].insert_one({
+                "id_personagem": novo_id,
+                "nome": nome,
+                "classe": classe,
+                "nivel": nivel,
+                "id_jogador": id_jogador,
+                "id_guilda": id_guilda,
+            })
+            novo_personagem = self.buscar_personagem(mongo, novo_id)
+            print("\nPersonagem cadastrado com sucesso!")
+            print(novo_personagem.to_string())
 
             if not perguntar_sim_nao("\nDeseja inserir mais algum personagem?"):
                 break
-        oracle.fechar()
+        mongo.fechar()
 
+    # -----------------------------------------------------------------
+    # ATUALIZAR
+    # -----------------------------------------------------------------
     def atualizar_personagem(self):
-        oracle = OracleQueries()
+        mongo = MongoQueries()
+        mongo.conectar()
         while True:
             print("\n=== ATUALIZAR PERSONAGEM ===\n")
-            if self.listar_personagens(oracle) == 0:
+            if self.listar_personagens(mongo) == 0:
                 print("\nNão há personagens cadastrados.")
                 break
 
             id_personagem = ler_inteiro("\nID do personagem que deseja atualizar: ")
-            personagem = self.buscar_personagem(oracle, id_personagem)
+            personagem = self.buscar_personagem(mongo, id_personagem)
 
             if personagem is None:
                 print(f"\nNão existe personagem com o ID {id_personagem}.")
@@ -125,30 +143,34 @@ class Controller_Personagem:
                 novo_nome = ler_texto("Nome do personagem: ", 30)
                 nova_classe = self.escolher_classe()
                 novo_nivel = ler_inteiro("Nível [1-100]: ", 1, 100)
-                novo_jogador = self.escolher_jogador(oracle)
-                nova_guilda = self.escolher_guilda(oracle)
-                sql = (f"update personagens set nome = '{novo_nome}', "
-                       f"classe = '{nova_classe}', nivel = {novo_nivel}, "
-                       f"id_jogador = {novo_jogador}, id_guilda = {nova_guilda} "
-                       f"where id_personagem = {id_personagem}")
-                if oracle.executar(sql):
-                    personagem_atualizado = self.buscar_personagem(oracle, id_personagem)
-                    print("\nPersonagem atualizado com sucesso!")
-                    print(personagem_atualizado.to_string())
+                novo_jogador = self.escolher_jogador(mongo)
+                nova_guilda = self.escolher_guilda(mongo)
+                mongo.db["personagens"].update_one(
+                    {"id_personagem": id_personagem},
+                    {"$set": {"nome": novo_nome, "classe": nova_classe, "nivel": novo_nivel,
+                              "id_jogador": novo_jogador, "id_guilda": nova_guilda}})
+                personagem_atualizado = self.buscar_personagem(mongo, id_personagem)
+                print("\nPersonagem atualizado com sucesso!")
+                print(personagem_atualizado.to_string())
+
             if not perguntar_sim_nao("\nDeseja atualizar mais algum personagem?"):
                 break
-        oracle.fechar()
+        mongo.fechar()
 
+    # -----------------------------------------------------------------
+    # REMOVER
+    # -----------------------------------------------------------------
     def excluir_personagem(self):
-        oracle = OracleQueries()
+        mongo = MongoQueries()
+        mongo.conectar()
         while True:
             print("\n=== REMOVER PERSONAGEM ===\n")
-            if self.listar_personagens(oracle) == 0:
+            if self.listar_personagens(mongo) == 0:
                 print("\nNão há personagens cadastrados.")
                 break
 
             id_personagem = ler_inteiro("\nID do personagem que deseja remover: ")
-            personagem = self.buscar_personagem(oracle, id_personagem)
+            personagem = self.buscar_personagem(mongo, id_personagem)
 
             if personagem is None:
                 print(f"\nNão existe personagem com o ID {id_personagem}.")
@@ -156,11 +178,11 @@ class Controller_Personagem:
                 print("\n" + personagem.to_string())
                 if not perguntar_sim_nao("Confirma a remoção deste personagem?"):
                     print("\nRemoção cancelada.")
-                    break
-
-            if oracle.executar(f"delete from personagens where id_personagem = {id_personagem}"):
+                    break   # o edital pede: se "Não", volta ao menu principal
+                # Nenhuma coleção referencia personagens, então pode apagar direto
+                mongo.db["personagens"].delete_one({"id_personagem": id_personagem})
                 print("\nPersonagem removido com sucesso!")
 
             if not perguntar_sim_nao("\nDeseja remover mais algum personagem?"):
                 break
-        oracle.fechar()
+        mongo.fechar()
