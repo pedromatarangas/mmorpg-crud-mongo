@@ -27,7 +27,18 @@ Projeto agora em MongoDB. Pelo edital, basicamente podemos reaproveitar o trabal
 
 ## Artur Carmo dos Santos
 
----
+## C3 — Integrante C (Artur Carmo dos Santos) — Personagens
+
+**Ferramenta:** Claude (Anthropic)
+
+**O que pedi:** um guia para adaptar o `controller_personagem.py` do Oracle para o MongoDB.
+
+**O que recebi:** o guia "C3 – Integrante C – Personagens", com o código novo do controller, a explicação das mudanças e os testes.
+
+**O que fiz com ele:**
+- Substituí o conteúdo de `src/controller/controller_personagem.py` pela versão em MongoDB.
+- Entendi as mudanças: o JOIN virou três `find_one` (personagem, jogador e guilda), a verificação de jogador e guilda existentes passou a usar `count_documents`, e as regras de classe e nível, que antes eram CHECK no Oracle, agora são validadas no Python.
+- Fiz commit e push do arquivo.
 
 ## Gabriel Leal Hoffoman
 
