@@ -1,9 +1,9 @@
 # =====================================================================
 # splash_screen.py
-# Monta a tela inicial: título em ASCII art, total de registros de cada
-# tabela, integrantes, disciplina, semestre e professor.
+# Monta a tela inicial: título em ASCII art, total de documentos de cada
+# coleção, integrantes, disciplina, semestre e professor.
 # =====================================================================
-from conexion.oracle_queries import OracleQueries
+from conexion.mongo_queries import MongoQueries
 from utils import config
 
 # Códigos de cor do terminal (o RESET volta para a cor normal)
@@ -40,14 +40,15 @@ class SplashScreen:
         """Monta uma linha do quadro com o texto no centro."""
         return "║" + cor + texto.center(self.largura) + RESET + "║"
 
-    def contar_registros(self, oracle, tabela):
-        """Executa o select count da tabela e devolve o número."""
-        sql = config.QUERY_COUNT.format(tabela=tabela)
-        return oracle.consultar(sql)[0][0]
+    def contar_documentos(self, mongo, colecao):
+        """Conta quantos documentos existem na coleção.
+        O filtro vazio {} quer dizer "todos os documentos"."""
+        return mongo.db[colecao].count_documents({})
 
     def gerar_tela(self):
         """Devolve o texto completo da splash screen."""
-        oracle = OracleQueries()
+        mongo = MongoQueries()
+        mongo.conectar()
         topo = "╔" + "═" * self.largura + "╗"
         divisao = "╠" + "═" * self.largura + "╣"
         base = "╚" + "═" * self.largura + "╝"
@@ -60,12 +61,12 @@ class SplashScreen:
         linhas.append(self.centralizada(config.NOME_SISTEMA, NEGRITO))
         linhas.append(divisao)
 
-        # Contagem de registros de cada tabela
-        linhas.append(self.linha("TOTAL DE REGISTROS EXISTENTES", NEGRITO))
+        # Contagem de documentos de cada coleção
+        linhas.append(self.linha("TOTAL DE DOCUMENTOS EXISTENTES", NEGRITO))
         numero = 1
-        for tabela in config.TABELAS:
-            total = self.contar_registros(oracle, tabela)
-            linhas.append(self.linha(f"   {numero} - {tabela + ':':<14}{total:>6}", CIANO))
+        for colecao in config.COLECOES:
+            total = self.contar_documentos(mongo, colecao)
+            linhas.append(self.linha(f"   {numero} - {colecao.upper() + ':':<14}{total:>6}", CIANO))
             numero = numero + 1
         linhas.append(divisao)
 
@@ -81,5 +82,5 @@ class SplashScreen:
         linhas.append(self.linha("PROFESSOR:  " + config.PROFESSOR))
         linhas.append(base)
 
-        oracle.fechar()
+        mongo.fechar()
         return "\n".join(linhas)

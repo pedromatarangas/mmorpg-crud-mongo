@@ -16,18 +16,15 @@ DISCIPLINA = "BANCO DE DADOS"
 SEMESTRE = "2026/2"
 PROFESSOR = "HOWARD ROATTI"
 
-# Tabelas que aparecem na contagem da splash screen
-TABELAS = ["GUILDAS", "JOGADORES", "PERSONAGENS"]
-
-# Consulta de contagem pedida no edital (o {tabela} é trocado pelo nome)
-QUERY_COUNT = "select count(1) as total_{tabela} from {tabela}"
+# Coleções que aparecem na contagem da splash screen
+COLECOES = ["guildas", "jogadores", "personagens"]
 
 MENU_PRINCIPAL = """
 =========== MENU PRINCIPAL ===========
   1 - Relatórios
-  2 - Inserir registros
-  3 - Atualizar registros
-  4 - Remover registros
+  2 - Inserir documentos
+  3 - Atualizar documentos
+  4 - Remover documentos
   5 - Sair
 ======================================"""
 

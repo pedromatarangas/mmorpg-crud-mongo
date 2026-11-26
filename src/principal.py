@@ -43,7 +43,7 @@ def escolher_entidade(acao):
 
 
 def inserir():
-    opcao = escolher_entidade("INSERIR REGISTROS")
+    opcao = escolher_entidade("INSERIR DOCUMENTOS")
     if opcao == 1:
         ctrl_guilda.inserir_guilda()
     elif opcao == 2:
@@ -53,7 +53,7 @@ def inserir():
 
 
 def atualizar():
-    opcao = escolher_entidade("ATUALIZAR REGISTROS")
+    opcao = escolher_entidade("ATUALIZAR DOCUMENTOS")
     if opcao == 1:
         ctrl_guilda.atualizar_guilda()
     elif opcao == 2:
@@ -63,7 +63,7 @@ def atualizar():
 
 
 def remover():
-    opcao = escolher_entidade("REMOVER REGISTROS")
+    opcao = escolher_entidade("REMOVER DOCUMENTOS")
     if opcao == 1:
         ctrl_guilda.excluir_guilda()
     elif opcao == 2:
