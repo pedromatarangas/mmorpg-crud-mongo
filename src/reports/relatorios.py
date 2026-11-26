@@ -1,36 +1,84 @@
-import os
-from conexion.oracle_queries import OracleQueries
+from conexion.mongo_queries import MongoQueries
 from utils import config
 
 
-PASTA_SQL = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "sql")
-
-
 class Relatorio:
+
     def __init__(self):
-        self.query_por_classe = self.ler_arquivo("relatorio_personagens_por_classe.sql")
-        self.query_por_guilda = self.ler_arquivo("relatorio_personagens_por_guilda.sql")
-        self.query_completo = self.ler_arquivo("relatorio_personagens_completo.sql")
+        pass
 
-    def ler_arquivo(self, nome_arquivo):
-        """Abre um arquivo da pasta src/sql e devolve o texto dele."""
-        caminho = os.path.join(PASTA_SQL, nome_arquivo)
-        with open(caminho, encoding="utf-8") as arquivo:
-            return arquivo.read()
-
-    def mostrar(self, titulo, query):
-        """Mostra o título, executa a consulta e espera o Enter."""
+    def mostrar(self, titulo, colecao, pipeline, colunas):
+        """Executa o pipeline na coleção, mostra o resultado e espera o Enter."""
         print(f"\n=== {titulo} ===\n")
-        oracle = OracleQueries()
-        oracle.imprimir(query)
-        oracle.fechar()
+        mongo = MongoQueries()
+        mongo.conectar()
+        resultado = mongo.db[colecao].aggregate(pipeline)
+        mongo.imprimir(resultado, colunas)
+        mongo.fechar()
         config.pausar()
 
+   
     def get_relatorio_personagens_por_classe(self):
-        self.mostrar("PERSONAGENS POR CLASSE", self.query_por_classe)
+        pipeline = [
+           
+            {"$group": {
+                "_id": "$classe",
+                "qtd_personagens": {"$sum": 1},       
+                "nivel_medio": {"$avg": "$nivel"},     
+                "maior_nivel": {"$max": "$nivel"},    
+            }},
+            {"$project": {
+                "_id": 0,
+                "classe": "$_id",
+                "qtd_personagens": 1,
+                "nivel_medio": 1,
+                "maior_nivel": 1,
+            }},
+            {"$sort": {"classe": 1}},
+        ]
+        self.mostrar("PERSONAGENS POR CLASSE", "personagens", pipeline,
+                     ["classe", "qtd_personagens", "nivel_medio", "maior_nivel"])
 
+    
     def get_relatorio_personagens_por_guilda(self):
-        self.mostrar("PERSONAGENS POR GUILDA", self.query_por_guilda)
+        pipeline = [
+           
+            {"$lookup": {
+                "from": "personagens",
+                "localField": "id_guilda",
+                "foreignField": "id_guilda",
+                "as": "membros",            
+            }},
+            {"$project": {
+                "_id": 0,
+                "guilda": "$nome",
+                "qtd_membros": {"$size": "$membros"},
+                "nivel_medio": {"$ifNull": [{"$avg": "$membros.nivel"}, 0]},
+            }},
+            {"$sort": {"qtd_membros": -1, "guilda": 1}},   
+        ]
+        self.mostrar("PERSONAGENS POR GUILDA", "guildas", pipeline,
+                     ["guilda", "qtd_membros", "nivel_medio"])
 
+    
     def get_relatorio_personagens_completo(self):
-        self.mostrar("LISTA COMPLETA DE PERSONAGENS", self.query_completo)
+        pipeline = [
+            {"$lookup": {"from": "jogadores", "localField": "id_jogador",
+                         "foreignField": "id_jogador", "as": "jogador"}},
+            {"$unwind": "$jogador"},
+            {"$lookup": {"from": "guildas", "localField": "id_guilda",
+                         "foreignField": "id_guilda", "as": "guilda"}},
+            {"$unwind": "$guilda"},
+            {"$project": {
+                "_id": 0,
+                "id": "$id_personagem",
+                "personagem": "$nome",
+                "classe": 1,
+                "nivel": 1,
+                "jogador": "$jogador.nickname",
+                "guilda": "$guilda.nome",
+            }},
+            {"$sort": {"guilda": 1, "nivel": -1}},
+        ]
+        self.mostrar("LISTA COMPLETA DE PERSONAGENS", "personagens", pipeline,
+                     ["id", "personagem", "classe", "nivel", "jogador", "guilda"])
