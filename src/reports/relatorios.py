@@ -20,13 +20,13 @@ class Relatorio:
    
     def get_relatorio_personagens_por_classe(self):
         pipeline = [
-           
             {"$group": {
                 "_id": "$classe",
                 "qtd_personagens": {"$sum": 1},       
                 "nivel_medio": {"$avg": "$nivel"},     
-                "maior_nivel": {"$max": "$nivel"},    
+                "maior_nivel": {"$max": "$nivel"},     
             }},
+            
             {"$project": {
                 "_id": 0,
                 "classe": "$_id",
@@ -34,6 +34,7 @@ class Relatorio:
                 "nivel_medio": 1,
                 "maior_nivel": 1,
             }},
+            
             {"$sort": {"classe": 1}},
         ]
         self.mostrar("PERSONAGENS POR CLASSE", "personagens", pipeline,
@@ -42,7 +43,7 @@ class Relatorio:
     
     def get_relatorio_personagens_por_guilda(self):
         pipeline = [
-           
+            
             {"$lookup": {
                 "from": "personagens",
                 "localField": "id_guilda",
@@ -53,18 +54,20 @@ class Relatorio:
                 "_id": 0,
                 "guilda": "$nome",
                 "qtd_membros": {"$size": "$membros"},
+               
                 "nivel_medio": {"$ifNull": [{"$avg": "$membros.nivel"}, 0]},
             }},
-            {"$sort": {"qtd_membros": -1, "guilda": 1}},   
+            {"$sort": {"qtd_membros": -1, "guilda": 1}},  
         ]
         self.mostrar("PERSONAGENS POR GUILDA", "guildas", pipeline,
                      ["guilda", "qtd_membros", "nivel_medio"])
 
-    
+   
     def get_relatorio_personagens_completo(self):
         pipeline = [
             {"$lookup": {"from": "jogadores", "localField": "id_jogador",
                          "foreignField": "id_jogador", "as": "jogador"}},
+            
             {"$unwind": "$jogador"},
             {"$lookup": {"from": "guildas", "localField": "id_guilda",
                          "foreignField": "id_guilda", "as": "guilda"}},
@@ -81,4 +84,5 @@ class Relatorio:
             {"$sort": {"guilda": 1, "nivel": -1}},
         ]
         self.mostrar("LISTA COMPLETA DE PERSONAGENS", "personagens", pipeline,
+                      ["id", "personagem", "classe", "nivel", "jogador", "guilda"])
                      ["id", "personagem", "classe", "nivel", "jogador", "guilda"])
