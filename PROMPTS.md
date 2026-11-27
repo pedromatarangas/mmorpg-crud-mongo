@@ -42,6 +42,15 @@ Gemini, Na c2 do howard da matéria de banco de dados, houve a produção de um 
 **O que foi feito com a resposta:** A resposta oferecida pela ia serviu de base para adaptar a minha parte do trabalho do Oracle para o MongoDB de forma mais simples de por em prática.
 ---
 
+### Prompt 2 — 26/11/2026
+**Fonte:** Gemini
 
+**Prompt:**
+```text
+Gemini, Necessito agora por dúvidas de talvez algum erro que eu não tenha percebido, corrija as partes que irei enviar a baixo . Caso tenha algum erro, refaça o codigo mas me explique o que pode ter acontecido.
+```
+
+**O que foi feito com a resposta:** A resposta fornecida pela ia foi utilizada para corrigir os meus erros por desatenção tanto no diagrama, quanto no relatório.
+---
 
 
