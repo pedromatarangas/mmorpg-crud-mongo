@@ -84,5 +84,4 @@ class Relatorio:
             {"$sort": {"guilda": 1, "nivel": -1}},
         ]
         self.mostrar("LISTA COMPLETA DE PERSONAGENS", "personagens", pipeline,
-                      ["id", "personagem", "classe", "nivel", "jogador", "guilda"])
                      ["id", "personagem", "classe", "nivel", "jogador", "guilda"])
