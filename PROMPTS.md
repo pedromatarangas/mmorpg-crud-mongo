@@ -31,5 +31,17 @@ Projeto agora em MongoDB. Pelo edital, basicamente podemos reaproveitar o trabal
 
 ## Gabriel Leal Hoffoman
 
+### Prompt 1 — 26/11/2026
+**Fonte:** Gemini
+
+**Prompt:**
+```text
+Gemini, Na c2 do howard da matéria de banco de dados, houve a produção de um MMORPG no oracle. Sendo assim, no projeto da c3 pede o mesmo tema sendo que agora será utilizado o mongo. Em seguida, irei lhe mandar um arquivo de pdf da minha parte do trabalho, mostre o que devo mudar nele e como deve ser utilizado o mongo. ( retire essa parte no parentese e faça o pront pra mim.)
+```
+
+**O que foi feito com a resposta:** A resposta oferecida pela ia serviu de base para adaptar a minha parte do trabalho do Oracle para o MongoDB de forma mais simples de por em prática.
+---
+
+
 
 
